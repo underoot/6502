@@ -2,6 +2,10 @@
 # yarn lockfile v1
 
 
+"6502@bleroy/6502":
+  version "0.1.0"
+  resolved "https://codeload.github.com/bleroy/6502/tar.gz/4fa64b583a6fcfc41e47061da70e52dac1c00e14"
+
 "@ampproject/remapping@^2.2.0":
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/@ampproject/remapping/-/remapping-2.2.1.tgz#99e8e11851128b8702cd57c33684f1d0f260b630"
