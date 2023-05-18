@@ -1,5 +1,5 @@
 {
-  "name": "6502-simulator",
+  "name": "6502-simulator-2",
   "private": true,
   "version": "0.0.0",
   "scripts": {
@@ -16,7 +16,6 @@
     "vite": "^4.3.2"
   },
   "dependencies": {
-    "6502": "bleroy/6502",
     "jest": "^29.5.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

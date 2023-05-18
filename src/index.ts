@@ -236,6 +236,10 @@ export class Simulator {
           return this;
         }
 
+        if (product.isSetter) {
+          this.#ac = product.result;
+        }
+
         this.#afterOperationActions(product);
         return this;
       }
@@ -1034,13 +1038,14 @@ export class Simulator {
         const before = this.#ac;
         const result = this.#ac | byte;
 
+        this.#ac = result;
+
         return {
           isNegative: true,
           isZero: true,
-          isSetter: true,
           before,
           result,
-          after: result,
+          after: this.#ac,
           byte,
         };
       }
