@@ -1,7 +1,6 @@
 import React, { StrictMode, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-// @ts-ignore
-import Simulator from './6502';
+import { Simulator } from './'; 
 
 type RunnerState = {
   memory: Uint8Array;
@@ -39,33 +38,49 @@ class Runner {
   run(data: Uint8Array) {
     const initialSong = data[7] + 15;
 
-    this.simulator.A = initialSong - 1;
-    this.simulator.X = data[0x7A] & 0b10000000 ? 0x01 : 0x00;
-    this.simulator.poke(0x4015, 0x0F);
-    this.simulator.poke(0x4017, 0x40);
+    this.simulator.ops[0xA9](initialSong - 1);
+    this.simulator.ops[0xA2](data[0x7A] & 0b10000000 ? 0x01 : 0x00);
+    this.simulator.fill(0x0000, 0x0800, 0);
+    this.simulator.fill(0x6000, 0x8000, 0);
+    this.simulator.fill(0x4000, 0x4014, 0);
+    this.simulator.write([0x0F], 0x4015);
+    this.simulator.set(0x17, 0x40, 0, 0x40);
+
     const loadAddress = data[8] | (data[9] << 8);
 
-    this.simulator.PC = data[10] | data[11] << 8;
-    this.simulator.poke(loadAddress, ...data.slice(0x0080, data.length));
+    this.simulator.ops[0x4C](data[10], data[11]);
+
+    this.simulator.write([...data.slice(0x0080, data.length)], loadAddress)
 
     this.notify();
-
-    this.simulator.addAddressBreakpoint(0x0000, ({ address }: any) => {
-      if (!this.data || this.inited || address !== 0x0000) {
-        return;
-      }
-
-      this.inited = true;
-      this.simulator.PC = this.data[12] | this.data[13] << 8;
-      console.log("Inited");
-      this.notify();
-    });
 
     this.data = data;
   }
 
   step() {
-    this.simulator.step();
+    let pc = this.simulator.getProgramCounter();
+    const opcode = this.simulator.get(pc & 0xFF, pc >> 8);
+    const argsLength = this.simulator.ops[opcode].length;
+    const args = [];
+
+    this.simulator.incProgramCounter();
+
+    if (this.simulator.codeToName[opcode] === 'RTS' && !this.inited && this.data) {
+      this.inited = true;
+      this.simulator.ops[0x4C](this.data[12], this.data[13]);
+      console.log("Inited");
+      this.notify();
+      return;
+    }
+
+
+    for (let i = 0; i < argsLength; i++) {
+      pc = this.simulator.getProgramCounter();
+      args.push(this.simulator.get(pc & 0xFF, pc >> 8));
+      this.simulator.incProgramCounter();
+    }
+
+    this.simulator.ops[opcode](...args);
     this.notify();
   }
 }
@@ -94,7 +109,7 @@ const registerIndexToName = (index: number) => {
 const App = () => {
   const runner = useRef(new Runner()).current;
   const [memory] = React.useState<Uint8Array>(runner.simulator.getMemory());
-  const [registers, setRegisters] = React.useState<Uint8Array>(runner.simulator.getRegisters());
+  const [registers] = React.useState<Uint8Array>(runner.simulator.getRegisters());
   const [monitorStart, setMonitorStart] = React.useState(0x0000);
   const [monitorEnd, setMonitorEnd] = React.useState(0x0100);
   const monitorStartRef = useRef<HTMLInputElement>(null);
@@ -112,7 +127,6 @@ const App = () => {
 
   useEffect(() => {
     runner.onChange(() => {
-      setRegisters(runner.simulator.getRegisters());
       setLastUpdateTS(Date.now());
     });
   });
@@ -176,6 +190,8 @@ const App = () => {
         console.log('Not a NES file!');
         return;
       }
+
+      console.log(data[4]);
 
       console.log("Version: ", data[5]);
       console.log("Number of songs: ", data[6]);
