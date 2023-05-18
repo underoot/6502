@@ -51,12 +51,12 @@ class Runner {
     this.notify();
 
     this.simulator.addAddressBreakpoint(0x0000, ({ address }: any) => {
-      if (!this.data || this.inited || address !== 0x0000) {
+      if (!this.data || this.inited || address.valueOf() !== 0x0000) {
         return;
       }
 
       this.inited = true;
-      this.simulator.PC = this.data[12] | this.data[13] << 8;
+      this.simulator.PC = (this.data[12] | this.data[13] << 8) - 1;
       console.log("Inited");
       this.notify();
     });
